@@ -124,6 +124,25 @@ When position notional exceeds `closeThresholdUsd`:
 - `closeThresholdUsd` - Switch to close mode
 - `maxPositionUsd` - Stop opening new positions entirely
 
+## Docker
+
+```bash
+# Build image
+docker build -t aftermath-mm .
+
+# Run Hyperliquid bot
+docker compose --profile hyperliquid up -d
+
+# Run Aftermath bot
+docker compose --profile aftermath up -d
+
+# Run both
+docker compose --profile all up -d
+
+# View logs
+docker compose logs -f
+```
+
 ## Development
 
 ```bash

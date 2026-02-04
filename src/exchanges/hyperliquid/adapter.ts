@@ -99,7 +99,7 @@ export class HyperliquidAdapter implements IExchange {
    * @param symbol - Trading symbol (e.g., "BTC" or "BTC/USD:USD")
    * @param callback - Called on each orderbook update
    */
-  subscribeOrderbook(symbol: string, callback: (book: Orderbook) => void): void {
+  async subscribeOrderbook(symbol: string, callback: (book: Orderbook) => void): Promise<void> {
     // Extract base symbol (e.g., "BTC" from "BTC/USD:USD")
     const base = symbol.includes("/") ? symbol.split("/")[0] : symbol;
 
@@ -111,17 +111,19 @@ export class HyperliquidAdapter implements IExchange {
     this.orderbookCallbacks.set(base, callback);
 
     // Subscribe via orderbook subscription manager
-    this.orderbookSubscription.subscribeOrderbook(base, callback).catch((error) => {
+    try {
+      await this.orderbookSubscription.subscribeOrderbook(base, callback);
+    } catch (error) {
       logger.error(`Failed to subscribe to orderbook for ${symbol}`, error);
       throw error;
-    });
+    }
   }
 
   /**
    * Unsubscribe from orderbook updates for a symbol
    * @param symbol - Trading symbol
    */
-  unsubscribeOrderbook(symbol: string): void {
+  async unsubscribeOrderbook(symbol: string): Promise<void> {
     // Extract base symbol
     const base = symbol.includes("/") ? symbol.split("/")[0] : symbol;
 
@@ -133,10 +135,11 @@ export class HyperliquidAdapter implements IExchange {
     this.orderbookCallbacks.delete(base);
 
     // Unsubscribe via orderbook subscription manager
-    this.orderbookSubscription.unsubscribeOrderbook(base).catch((error) => {
+    try {
+      await this.orderbookSubscription.unsubscribeOrderbook(base);
+    } catch (error) {
       logger.error(`Failed to unsubscribe from orderbook for ${symbol}`, error);
-      throw error;
-    });
+    }
   }
 
   /**

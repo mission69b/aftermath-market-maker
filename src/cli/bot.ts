@@ -100,6 +100,7 @@ mm.start()
         `Status: ${status.state} | Source: ${status.priceSource} | Fair: $${status.fairPrice?.toFixed(2) || "N/A"} | ` +
           `Position: ${status.position.side} $${status.position.notional.toFixed(2)} | ` +
           `PnL: $${status.position.pnl.toFixed(2)} | ` +
+          `Margin: ${(status.marginRatio * 100).toFixed(1)}% | ` +
           `Close Mode: ${status.isCloseMode}`
       );
     }, 10000);

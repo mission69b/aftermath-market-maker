@@ -59,7 +59,7 @@ function render(): void {
   console.log("");
 
   // Fair price
-  console.log("--- Binance Fair Price ---");
+  console.log("--- Fair Price ---");
   if (fairPrice) {
     console.log(`  Fair Price: $${formatPrice(fairPrice)}`);
   } else {
@@ -147,7 +147,7 @@ async function main(): Promise<void> {
   await fairPriceCalc.connect();
 
   // Subscribe to orderbook
-  exchange.subscribeOrderbook(options.symbol, (book) => {
+  await exchange.subscribeOrderbook(options.symbol, (book) => {
     orderbook = book;
   });
 
@@ -183,7 +183,7 @@ async function main(): Promise<void> {
     clearInterval(positionInterval);
 
     try {
-      exchange.unsubscribeOrderbook(options.symbol);
+      await exchange.unsubscribeOrderbook(options.symbol);
       await exchange.disconnect();
       fairPriceCalc.disconnect();
     } catch (error) {

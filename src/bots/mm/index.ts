@@ -39,6 +39,7 @@ export interface MarketMakerStatus {
     askSize: number | null;
   };
   isCloseMode: boolean;
+  marginRatio: number;
   uptime: number;
 }
 
@@ -64,6 +65,8 @@ export class MarketMaker {
   private lastUpdateTime = 0;
   private errorCount = 0;
   private maxErrors = 10;
+  private lastMarginRatio = 1.0;
+  private marginCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(exchange: ExchangeName, symbol: string, overrides?: Partial<MarketMakerConfig>) {
     this.config = mergeConfig(exchange, symbol, overrides);
@@ -113,7 +116,7 @@ export class MarketMaker {
       this.quoter.setMarket(this.market);
 
       // Subscribe to orderbook (for potential future use)
-      this.exchange.subscribeOrderbook(this.config.symbol, (_book) => {
+      await this.exchange.subscribeOrderbook(this.config.symbol, (_book) => {
         // Could be used for spread adjustment based on book depth
       });
 
@@ -142,6 +145,9 @@ export class MarketMaker {
 
       // Start order sync interval
       this.startOrderSync();
+
+      // Start margin monitoring
+      this.startMarginCheck();
     } catch (error) {
       this.state = "error";
       logger.error("Failed to start market maker:", error);
@@ -166,6 +172,11 @@ export class MarketMaker {
       this.orderSyncInterval = null;
     }
 
+    if (this.marginCheckInterval) {
+      clearInterval(this.marginCheckInterval);
+      this.marginCheckInterval = null;
+    }
+
     // Cancel all orders
     try {
       await this.cancelAllOrders();
@@ -175,7 +186,7 @@ export class MarketMaker {
 
     // Disconnect
     try {
-      this.exchange.unsubscribeOrderbook(this.config.symbol);
+      await this.exchange.unsubscribeOrderbook(this.config.symbol);
       await this.exchange.disconnect();
     } catch (error) {
       logger.error("Failed to disconnect exchange:", error);
@@ -232,6 +243,61 @@ export class MarketMaker {
         logger.error("Order sync error:", error);
       });
     }, this.config.orderSyncIntervalMs);
+  }
+
+  /**
+   * Start margin ratio monitoring
+   */
+  private startMarginCheck(): void {
+    // Check margin every 10 seconds
+    this.marginCheckInterval = setInterval(() => {
+      this.checkMarginRatio().catch((error) => {
+        logger.error("Margin check error:", error);
+      });
+    }, 10000);
+
+    // Initial check
+    this.checkMarginRatio().catch((error) => {
+      logger.error("Initial margin check error:", error);
+    });
+  }
+
+  /**
+   * Check margin ratio and pause if too low
+   */
+  private async checkMarginRatio(): Promise<void> {
+    try {
+      const account = await this.exchange.getAccount();
+
+      // Calculate margin ratio: availableMargin / equity
+      // Higher is safer, lower means closer to liquidation
+      if (account.equity > 0) {
+        this.lastMarginRatio = account.availableMargin / account.equity;
+      }
+
+      if (this.lastMarginRatio < this.config.minMarginRatio) {
+        if (this.state === "running") {
+          logger.warn(
+            `Margin ratio ${(this.lastMarginRatio * 100).toFixed(1)}% below minimum ${(this.config.minMarginRatio * 100).toFixed(1)}%, pausing...`
+          );
+          this.state = "paused";
+
+          // Cancel all orders to reduce risk
+          await this.cancelAllOrders();
+        }
+      } else if (
+        this.state === "paused" &&
+        this.lastMarginRatio >= this.config.minMarginRatio * 1.2
+      ) {
+        // Resume if margin has recovered with 20% buffer
+        logger.info(
+          `Margin ratio ${(this.lastMarginRatio * 100).toFixed(1)}% recovered, resuming...`
+        );
+        this.state = "running";
+      }
+    } catch (error) {
+      logger.error("Failed to check margin ratio:", error);
+    }
   }
 
   /**
@@ -396,6 +462,7 @@ export class MarketMaker {
         askSize: askOrder?.size || null,
       },
       isCloseMode: this.positionManager.isCloseMode(),
+      marginRatio: this.lastMarginRatio,
       uptime: Date.now() - this.startTime,
     };
   }

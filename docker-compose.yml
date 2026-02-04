@@ -1,0 +1,46 @@
+services:
+  # Hyperliquid market maker
+  mm-hyperliquid:
+    build: .
+    container_name: mm-hyperliquid
+    restart: unless-stopped
+    environment:
+      - EXCHANGE=hyperliquid
+      - SYMBOL=${SYMBOL:-BTC}
+      - PRICE_SOURCE=${PRICE_SOURCE:-binance}
+      - HL_PRIVATE_KEY=${HL_PRIVATE_KEY}
+      - HL_TESTNET=${HL_TESTNET:-false}
+      - SPREAD_BPS=${SPREAD_BPS:-10}
+      - ORDER_SIZE_USD=${ORDER_SIZE_USD:-100}
+      - CLOSE_THRESHOLD_USD=${CLOSE_THRESHOLD_USD:-500}
+      - MAX_POSITION_USD=${MAX_POSITION_USD:-2000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    command: ["node", "dist/cli/bot.js", "--exchange", "hyperliquid", "--symbol", "${SYMBOL:-BTC}"]
+    profiles:
+      - hyperliquid
+      - all
+
+  # Aftermath market maker
+  mm-aftermath:
+    build: .
+    container_name: mm-aftermath
+    restart: unless-stopped
+    environment:
+      - EXCHANGE=aftermath
+      - SYMBOL=${SYMBOL:-BTC}
+      - PRICE_SOURCE=${PRICE_SOURCE:-binance}
+      - SUI_PRIVATE_KEY=${SUI_PRIVATE_KEY}
+      - SPREAD_BPS=${SPREAD_BPS:-10}
+      - ORDER_SIZE_USD=${ORDER_SIZE_USD:-100}
+      - CLOSE_THRESHOLD_USD=${CLOSE_THRESHOLD_USD:-500}
+      - MAX_POSITION_USD=${MAX_POSITION_USD:-2000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    command: ["node", "dist/cli/bot.js", "--exchange", "aftermath", "--symbol", "${SYMBOL:-BTC}"]
+    profiles:
+      - aftermath
+      - all
+
+# Usage:
+# Run Hyperliquid bot:   docker compose --profile hyperliquid up -d
+# Run Aftermath bot:     docker compose --profile aftermath up -d
+# Run both:              docker compose --profile all up -d

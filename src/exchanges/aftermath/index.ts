@@ -140,32 +140,29 @@ export class AftermathAdapter implements IExchange {
    * @param symbol - Trading symbol (e.g., "BTC" or "BTC/USD:USDC")
    * @param callback - Called on each orderbook update
    */
-  subscribeOrderbook(symbol: string, callback: (book: Orderbook) => void): void {
-    // Get chId (may need to fetch if not cached)
-    this.getChIdForSymbol(symbol)
-      .then((chId) => {
-        this.orderbookCallbacks.set(symbol, callback);
-        this.orderbookSubscription.subscribeOrderbook(chId, callback);
-      })
-      .catch((error) => {
-        logger.error(`Failed to subscribe to orderbook for ${symbol}`, error);
-        throw error;
-      });
+  async subscribeOrderbook(symbol: string, callback: (book: Orderbook) => void): Promise<void> {
+    try {
+      const chId = await this.getChIdForSymbol(symbol);
+      this.orderbookCallbacks.set(symbol, callback);
+      this.orderbookSubscription.subscribeOrderbook(chId, callback);
+    } catch (error) {
+      logger.error(`Failed to subscribe to orderbook for ${symbol}`, error);
+      throw error;
+    }
   }
 
   /**
    * Unsubscribe from orderbook updates for a symbol
    * @param symbol - Trading symbol
    */
-  unsubscribeOrderbook(symbol: string): void {
-    this.getChIdForSymbol(symbol)
-      .then((chId) => {
-        this.orderbookCallbacks.delete(symbol);
-        this.orderbookSubscription.unsubscribeOrderbook(chId);
-      })
-      .catch((error) => {
-        logger.error(`Failed to unsubscribe from orderbook for ${symbol}`, error);
-      });
+  async unsubscribeOrderbook(symbol: string): Promise<void> {
+    try {
+      const chId = await this.getChIdForSymbol(symbol);
+      this.orderbookCallbacks.delete(symbol);
+      this.orderbookSubscription.unsubscribeOrderbook(chId);
+    } catch (error) {
+      logger.error(`Failed to unsubscribe from orderbook for ${symbol}`, error);
+    }
   }
 
   /**

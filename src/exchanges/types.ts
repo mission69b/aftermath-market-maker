@@ -40,14 +40,15 @@ export interface IExchange {
    * Subscribe to orderbook updates for a symbol
    * @param symbol - Trading symbol (e.g., "BTC")
    * @param callback - Called on each orderbook update
+   * @returns Promise that resolves when subscription is established
    */
-  subscribeOrderbook(symbol: string, callback: (book: Orderbook) => void): void;
+  subscribeOrderbook(symbol: string, callback: (book: Orderbook) => void): Promise<void>;
 
   /**
    * Unsubscribe from orderbook updates for a symbol
    * @param symbol - Trading symbol
    */
-  unsubscribeOrderbook(symbol: string): void;
+  unsubscribeOrderbook(symbol: string): Promise<void>;
 
   // Account management
   /**
@@ -77,8 +78,9 @@ export interface IExchange {
   /**
    * Cancel an existing order by ID
    * @param orderId - Exchange order ID
+   * @param symbol - Symbol (required for some exchanges like Aftermath)
    */
-  cancelOrder(orderId: string): Promise<void>;
+  cancelOrder(orderId: string, symbol?: string): Promise<void>;
 
   /**
    * Cancel all open orders, optionally filtered by symbol
